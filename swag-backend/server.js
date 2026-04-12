@@ -195,6 +195,74 @@ app.get('/api/users/:userId/history', (req, res) => {
     }
 });
 
+// ユーザー一覧取得(管理者用)
+app.get('/api/users', (req, res) => {
+    try {
+        const users = db.prepare('SELECT id, name, swag, is_admin FROM users ORDER BY id').all();
+        res.json(users);
+    } catch (err) {
+        console.error('エラー:', err);
+        return res.status(500).json({ error: 'データベースエラー' });
+    }
+});
+
+// ユーザー追加(管理者用)
+app.post('/api/users', (req, res) => {
+    const { id, name, swag, isAdmin } = req.body;
+
+    try {
+        // ユーザーIDの重複チェック
+        const existingUser = db.prepare('SELECT id FROM users WHERE id = ?').get(id);
+        if (existingUser) {
+            return res.status(400).json({ error: 'このユーザーIDは既に使用されています' });
+        }
+
+        // 新しいユーザーを追加
+        db.prepare('INSERT INTO users (id, name, swag, is_admin) VALUES (?, ?, ?, ?)').run(id, name, swag || 0, isAdmin ? 1 : 0);
+
+        res.json({ success: true, message: 'ユーザーを追加しました' });
+    } catch (err) {
+        console.error('エラー:', err);
+        return res.status(500).json({ error: 'データベースエラー' });
+    }
+});
+
+// ユーザー編集(管理者用)
+app.put('/api/users/:userId', (req, res) => {
+    const { userId } = req.params;
+    const { name, swag, isAdmin } = req.body;
+
+    try {
+        const user = db.prepare('SELECT id FROM users WHERE id = ?').get(userId);
+        if (!user) return res.status(404).json({ error: 'ユーザーが見つかりません' });
+
+        db.prepare('UPDATE users SET name = ?, swag = ?, is_admin = ? WHERE id = ?').run(name, swag, isAdmin ? 1 : 0, userId);
+
+        res.json({ success: true, message: 'ユーザー情報を更新しました' });
+    } catch (err) {
+        console.error('エラー:', err);
+        return res.status(500).json({ error: 'データベースエラー' });
+    }
+});
+
+// ユーザー削除(管理者用)
+app.delete('/api/users/:userId', (req, res) => {
+    const { userId } = req.params;
+
+    try {
+        const user = db.prepare('SELECT id FROM users WHERE id = ?').get(userId);
+        if (!user) return res.status(404).json({ error: 'ユーザーが見つかりません' });
+
+        db.prepare('DELETE FROM users WHERE id = ?').run(userId);
+
+        res.json({ success: true, message: 'ユーザーを削除しました' });
+    } catch (err) {
+        console.error('エラー:', err);
+        return res.status(500).json({ error: 'データベースエラー' });
+    }
+});
+
+
 app.listen(PORT, '0.0.0.0', () => {
     console.log(`サーバーが起動しました: http://localhost:${PORT}`);
     console.log(`ネットワークアクセス: http://[IP_ADDRESS]:${PORT}`);
