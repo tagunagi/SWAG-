@@ -1,7 +1,8 @@
 const express = require('express');
 const cors = require('cors');
 const bodyParser = require('body-parser');
-const sqlite3 = require('sqlite3').verbose();
+const Database = require('better-sqlite3');
+
 
 const app = express();
 const PORT = 3000;
@@ -9,17 +10,12 @@ const PORT = 3000;
 app.use(cors());
 app.use(bodyParser.json());
 
-const db = new sqlite3.Database('./swag_system.db', (err) => {
-    if (err) {
-        console.error('データベース接続エラー:', err.message);
-    } else {
-        console.log('データベースに接続しました');
-        initializeDatabase();
-    }
-});
+const db = new Database('./swag_system.db');
+console.log('データベースに接続しました');
+initializeDatabase();
 
 function initializeDatabase() {
-    db.run(`CREATE TABLE IF NOT EXISTS users (
+    db.exec(`CREATE TABLE IF NOT EXISTS users (
         id TEXT PRIMARY KEY,
         name TEXT NOT NULL,
         swag INTEGER DEFAULT 0,
@@ -31,9 +27,10 @@ function initializeDatabase() {
         { id: 'tagunagi', name: 'タグチ ナギサ', swag: 500, is_admin: 1 }
     ];
 
+    const insertUser = db.prepare(`INSERT OR IGNORE INTO users (id, name, swag, is_admin) VALUES (?, ?, ?, ?)`);
+
     initialUsers.forEach(user => {
-        db.run(`INSERT OR IGNORE INTO users (id, name, swag, is_admin) VALUES (?, ?, ?, ?)`,
-            [user.id, user.name, user.swag, user.is_admin]);
+        insertUser.run(user.id, user.name, user.swag, user.is_admin);
     });
 
     console.log('データベースの初期化が完了しました');
@@ -41,8 +38,8 @@ function initializeDatabase() {
 
 app.post('/api/login', (req, res) => {
     const { userId } = req.body;
-    db.get('SELECT * FROM users WHERE id = ?', [userId], (err, user) => {
-        if (err) return res.status(500).json({ error: 'データベースエラー' });
+    try {
+        const user = db.prepare('SELECT * FROM users WHERE id = ?').get(userId);
         if (!user) return res.status(404).json({ error: 'ユーザーが見つかりません' });
         res.json({
             id: user.id,
@@ -50,43 +47,43 @@ app.post('/api/login', (req, res) => {
             swag: user.swag,
             isAdmin: user.is_admin === 1
         });
-    });
+    } catch (err) {
+        return res.status(500).json({ error: 'データベースエラー' });
+    }
 });
+
 // SWAG使用
 app.post('/api/users/:userId/use', (req, res) => {
     const { userId } = req.params;
     const { amount, reason } = req.body;
 
-    db.get('SELECT swag FROM users WHERE id = ?', [userId], (err, user) => {
-        if (err) return res.status(500).json({ error: 'データベースエラー' });
+    try {
+        const user = db.prepare('SELECT swag FROM users WHERE id = ?').get(userId);
         if (!user) return res.status(404).json({ error: 'ユーザーが見つかりません' });
         if (user.swag < amount) return res.status(400).json({ error: '所持SWAG数が不足しています' });
 
         const newBalance = user.swag - amount;
         const date = new Date().toISOString();
 
-        db.run('UPDATE users SET swag = ? WHERE id = ?', [newBalance, userId], (err) => {
-            if (err) return res.status(500).json({ error: 'データベースエラー' });
+        db.prepare('UPDATE users SET swag = ? WHERE id = ?').run(newBalance, userId);
 
-            // 使用履歴テーブルに記録を追加
-            db.run(`CREATE TABLE IF NOT EXISTS use_history (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                user_id TEXT,
-                amount INTEGER,
-                reason TEXT,
-                balance INTEGER,
-                date TEXT
-            )`);
+        // 使用履歴テーブルに記録を追加
+        db.exec(`CREATE TABLE IF NOT EXISTS use_history (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id TEXT,
+            amount INTEGER,
+            reason TEXT,
+            balance INTEGER,
+            date TEXT
+        )`);
 
-            db.run('INSERT INTO use_history (user_id, amount, reason, balance, date) VALUES (?, ?, ?, ?, ?)',
-                [userId, amount, reason, newBalance, date], (err) => {
-                    if (err) console.error('履歴記録エラー:', err);
-                });
+        db.prepare('INSERT INTO use_history (user_id, amount, reason, balance, date) VALUES (?, ?, ?, ?, ?)').run(userId, amount, reason, newBalance, date);
 
-            res.json({ success: true, newBalance: newBalance });
-        });
-
-    });
+        res.json({ success: true, newBalance: newBalance });
+    } catch (err) {
+        console.error('エラー:', err);
+        return res.status(500).json({ error: 'データベースエラー' });
+    }
 });
 
 // SWAG付与(管理者用)
@@ -94,35 +91,33 @@ app.post('/api/users/:userId/grant', (req, res) => {
     const { userId } = req.params;
     const { amount, reason, grantedBy } = req.body;
 
-    db.get('SELECT swag FROM users WHERE id = ?', [userId], (err, user) => {
-        if (err) return res.status(500).json({ error: 'データベースエラー' });
+    try {
+        const user = db.prepare('SELECT swag FROM users WHERE id = ?').get(userId);
         if (!user) return res.status(404).json({ error: 'ユーザーが見つかりません' });
 
         const newBalance = user.swag + amount;
         const date = new Date().toISOString();
 
-        db.run('UPDATE users SET swag = ? WHERE id = ?', [newBalance, userId], (err) => {
-            if (err) return res.status(500).json({ error: 'データベースエラー' });
+        db.prepare('UPDATE users SET swag = ? WHERE id = ?').run(newBalance, userId);
 
-            // 付与履歴テーブルに記録を追加
-            db.run(`CREATE TABLE IF NOT EXISTS grant_history (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                user_id TEXT,
-                amount INTEGER,
-                reason TEXT,
-                granted_by TEXT,
-                balance INTEGER,
-                date TEXT
-            )`);
+        // 付与履歴テーブルに記録を追加
+        db.exec(`CREATE TABLE IF NOT EXISTS grant_history (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id TEXT,
+            amount INTEGER,
+            reason TEXT,
+            granted_by TEXT,
+            balance INTEGER,
+            date TEXT
+        )`);
 
-            db.run('INSERT INTO grant_history (user_id, amount, reason, granted_by, balance, date) VALUES (?, ?, ?, ?, ?, ?)',
-                [userId, amount, reason, grantedBy, newBalance, date], (err) => {
-                    if (err) console.error('履歴記録エラー:', err);
-                });
+        db.prepare('INSERT INTO grant_history (user_id, amount, reason, granted_by, balance, date) VALUES (?, ?, ?, ?, ?, ?)').run(userId, amount, reason, grantedBy, newBalance, date);
 
-            res.json({ success: true, newBalance: newBalance });
-        });
-    });
+        res.json({ success: true, newBalance: newBalance });
+    } catch (err) {
+        console.error('エラー:', err);
+        return res.status(500).json({ error: 'データベースエラー' });
+    }
 });
 
 
@@ -131,36 +126,34 @@ app.post('/api/users/:userId/deduct', (req, res) => {
     const { userId } = req.params;
     const { amount, reason, deductedBy } = req.body;
 
-    db.get('SELECT swag FROM users WHERE id = ?', [userId], (err, user) => {
-        if (err) return res.status(500).json({ error: 'データベースエラー' });
+    try {
+        const user = db.prepare('SELECT swag FROM users WHERE id = ?').get(userId);
         if (!user) return res.status(404).json({ error: 'ユーザーが見つかりません' });
         if (user.swag < amount) return res.status(400).json({ error: '所持SWAG数が不足しています' });
 
         const newBalance = user.swag - amount;
         const date = new Date().toISOString();
 
-        db.run('UPDATE users SET swag = ? WHERE id = ?', [newBalance, userId], (err) => {
-            if (err) return res.status(500).json({ error: 'データベースエラー' });
+        db.prepare('UPDATE users SET swag = ? WHERE id = ?').run(newBalance, userId);
 
-            // 減数履歴テーブルに記録を追加
-            db.run(`CREATE TABLE IF NOT EXISTS deduct_history (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                user_id TEXT,
-                amount INTEGER,
-                reason TEXT,
-                deducted_by TEXT,
-                balance INTEGER,
-                date TEXT
-            )`);
+        // 減数履歴テーブルに記録を追加
+        db.exec(`CREATE TABLE IF NOT EXISTS deduct_history (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id TEXT,
+            amount INTEGER,
+            reason TEXT,
+            deducted_by TEXT,
+            balance INTEGER,
+            date TEXT
+        )`);
 
-            db.run('INSERT INTO deduct_history (user_id, amount, reason, deducted_by, balance, date) VALUES (?, ?, ?, ?, ?, ?)',
-                [userId, amount, reason, deductedBy, newBalance, date], (err) => {
-                    if (err) console.error('履歴記録エラー:', err);
-                });
+        db.prepare('INSERT INTO deduct_history (user_id, amount, reason, deducted_by, balance, date) VALUES (?, ?, ?, ?, ?, ?)').run(userId, amount, reason, deductedBy, newBalance, date);
 
-            res.json({ success: true, newBalance: newBalance });
-        });
-    });
+        res.json({ success: true, newBalance: newBalance });
+    } catch (err) {
+        console.error('エラー:', err);
+        return res.status(500).json({ error: 'データベースエラー' });
+    }
 });
 
 
@@ -168,35 +161,39 @@ app.post('/api/users/:userId/deduct', (req, res) => {
 app.get('/api/users/:userId/history', (req, res) => {
     const { userId } = req.params;
 
-    db.all('SELECT * FROM use_history WHERE user_id = ? ORDER BY date DESC', [userId], (err, useHistory) => {
-        if (err) {
+    try {
+        let useHistory = [];
+        let grantHistory = [];
+        let deductHistory = [];
+
+        try {
+            useHistory = db.prepare('SELECT * FROM use_history WHERE user_id = ? ORDER BY date DESC').all(userId);
+        } catch (err) {
             console.error('使用履歴取得エラー:', err);
-            useHistory = [];
         }
 
-        db.all('SELECT * FROM grant_history WHERE user_id = ? ORDER BY date DESC', [userId], (err, grantHistory) => {
-            if (err) {
-                console.error('付与履歴取得エラー:', err);
-                grantHistory = [];
-            }
+        try {
+            grantHistory = db.prepare('SELECT * FROM grant_history WHERE user_id = ? ORDER BY date DESC').all(userId);
+        } catch (err) {
+            console.error('付与履歴取得エラー:', err);
+        }
 
-            db.all('SELECT * FROM deduct_history WHERE user_id = ? ORDER BY date DESC', [userId], (err, deductHistory) => {
-                if (err) {
-                    console.error('減数履歴取得エラー:', err);
-                    deductHistory = [];
-                }
-                res.json({
-                    useHistory: useHistory || [],
-                    grantHistory: grantHistory || [],
-                    deductHistory: deductHistory || []
-                });
-            });
+        try {
+            deductHistory = db.prepare('SELECT * FROM deduct_history WHERE user_id = ? ORDER BY date DESC').all(userId);
+        } catch (err) {
+            console.error('減数履歴取得エラー:', err);
+        }
+
+        res.json({
+            useHistory: useHistory || [],
+            grantHistory: grantHistory || [],
+            deductHistory: deductHistory || []
         });
-    });
+    } catch (err) {
+        console.error('エラー:', err);
+        return res.status(500).json({ error: 'データベースエラー' });
+    }
 });
-
-
-
 
 app.listen(PORT, '0.0.0.0', () => {
     console.log(`サーバーが起動しました: http://localhost:${PORT}`);
