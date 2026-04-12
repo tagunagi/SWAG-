@@ -1,6 +1,6 @@
 // API設定
 // TODO: あなたのPCのIPアドレスに変更してください
-const API_BASE_URL = 'http://localhost:3000/api';
+const API_BASE_URL = 'https://swagguan-li-dian-zi-hua.onrender.com/api';
 
 // グローバル変数
 let currentUser = null;
