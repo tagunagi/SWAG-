@@ -1,51 +1,66 @@
 const express = require('express');
 const cors = require('cors');
 const bodyParser = require('body-parser');
-const Database = require('better-sqlite3');
-
+const { createClient } = require('@supabase/supabase-js');
 
 const app = express();
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 
 app.use(cors());
 app.use(bodyParser.json());
 
-const db = new Database('./swag_system.db');
-console.log('データベースに接続しました');
-initializeDatabase();
+// Supabase接続
+const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseKey = process.env.SUPABASE_ANON_KEY;
+const supabase = createClient(supabaseUrl, supabaseKey);
 
-function initializeDatabase() {
-    db.exec(`CREATE TABLE IF NOT EXISTS users (
-        id TEXT PRIMARY KEY,
-        name TEXT NOT NULL,
-        swag INTEGER DEFAULT 0,
-        is_admin INTEGER DEFAULT 0
-    )`);
+console.log('Supabaseに接続しました');
 
+// 初期ユーザーデータの挿入（初回のみ）
+async function initializeDatabase() {
     const initialUsers = [
-        { id: 'kuniyak', name: 'クニヤ ケンタ', swag: 100, is_admin: 0 },
-        { id: 'tagunagi', name: 'タグチ ナギサ', swag: 500, is_admin: 1 }
+        { id: 'kuniyak', name: 'クニヤ ケンタ', swag: 100, is_admin: false },
+        { id: 'tagunagi', name: 'タグチ ナギサ', swag: 500, is_admin: true }
     ];
 
-    const insertUser = db.prepare(`INSERT OR IGNORE INTO users (id, name, swag, is_admin) VALUES (?, ?, ?, ?)`);
+    for (const user of initialUsers) {
+        const { data, error } = await supabase
+            .from('users')
+            .select('id')
+            .eq('id', user.id)
+            .single();
 
-    initialUsers.forEach(user => {
-        insertUser.run(user.id, user.name, user.swag, user.is_admin);
-    });
-
+        if (!data) {
+            await supabase.from('users').insert([{
+                id: user.id,
+                name: user.name,
+                swag: user.swag,
+                is_admin: user.is_admin
+            }]);
+        }
+    }
     console.log('データベースの初期化が完了しました');
 }
 
-app.post('/api/login', (req, res) => {
+initializeDatabase();
+
+// ログイン
+app.post('/api/login', async (req, res) => {
     const { userId } = req.body;
     try {
-        const user = db.prepare('SELECT * FROM users WHERE id = ?').get(userId);
-        if (!user) return res.status(404).json({ error: 'ユーザーが見つかりません' });
+        const { data: user, error } = await supabase
+            .from('users')
+            .select('*')
+            .eq('id', userId)
+            .single();
+
+        if (error || !user) return res.status(404).json({ error: 'ユーザーが見つかりません' });
+
         res.json({
             id: user.id,
             name: user.name,
             swag: user.swag,
-            isAdmin: user.is_admin === 1
+            isAdmin: user.is_admin
         });
     } catch (err) {
         return res.status(500).json({ error: 'データベースエラー' });
@@ -53,31 +68,35 @@ app.post('/api/login', (req, res) => {
 });
 
 // SWAG使用
-app.post('/api/users/:userId/use', (req, res) => {
+app.post('/api/users/:userId/use', async (req, res) => {
     const { userId } = req.params;
     const { amount, reason } = req.body;
 
     try {
-        const user = db.prepare('SELECT swag FROM users WHERE id = ?').get(userId);
-        if (!user) return res.status(404).json({ error: 'ユーザーが見つかりません' });
+        const { data: user, error } = await supabase
+            .from('users')
+            .select('swag')
+            .eq('id', userId)
+            .single();
+
+        if (error || !user) return res.status(404).json({ error: 'ユーザーが見つかりません' });
         if (user.swag < amount) return res.status(400).json({ error: '所持SWAG数が不足しています' });
 
         const newBalance = user.swag - amount;
         const date = new Date().toISOString();
 
-        db.prepare('UPDATE users SET swag = ? WHERE id = ?').run(newBalance, userId);
+        await supabase
+            .from('users')
+            .update({ swag: newBalance })
+            .eq('id', userId);
 
-        // 使用履歴テーブルに記録を追加
-        db.exec(`CREATE TABLE IF NOT EXISTS use_history (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id TEXT,
-            amount INTEGER,
-            reason TEXT,
-            balance INTEGER,
-            date TEXT
-        )`);
-
-        db.prepare('INSERT INTO use_history (user_id, amount, reason, balance, date) VALUES (?, ?, ?, ?, ?)').run(userId, amount, reason, newBalance, date);
+        await supabase.from('use_history').insert([{
+            user_id: userId,
+            amount: amount,
+            reason: reason,
+            balance: newBalance,
+            date: date
+        }]);
 
         res.json({ success: true, newBalance: newBalance });
     } catch (err) {
@@ -87,31 +106,35 @@ app.post('/api/users/:userId/use', (req, res) => {
 });
 
 // SWAG付与(管理者用)
-app.post('/api/users/:userId/grant', (req, res) => {
+app.post('/api/users/:userId/grant', async (req, res) => {
     const { userId } = req.params;
     const { amount, reason, grantedBy } = req.body;
 
     try {
-        const user = db.prepare('SELECT swag FROM users WHERE id = ?').get(userId);
-        if (!user) return res.status(404).json({ error: 'ユーザーが見つかりません' });
+        const { data: user, error } = await supabase
+            .from('users')
+            .select('swag')
+            .eq('id', userId)
+            .single();
+
+        if (error || !user) return res.status(404).json({ error: 'ユーザーが見つかりません' });
 
         const newBalance = user.swag + amount;
         const date = new Date().toISOString();
 
-        db.prepare('UPDATE users SET swag = ? WHERE id = ?').run(newBalance, userId);
+        await supabase
+            .from('users')
+            .update({ swag: newBalance })
+            .eq('id', userId);
 
-        // 付与履歴テーブルに記録を追加
-        db.exec(`CREATE TABLE IF NOT EXISTS grant_history (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id TEXT,
-            amount INTEGER,
-            reason TEXT,
-            granted_by TEXT,
-            balance INTEGER,
-            date TEXT
-        )`);
-
-        db.prepare('INSERT INTO grant_history (user_id, amount, reason, granted_by, balance, date) VALUES (?, ?, ?, ?, ?, ?)').run(userId, amount, reason, grantedBy, newBalance, date);
+        await supabase.from('grant_history').insert([{
+            user_id: userId,
+            amount: amount,
+            reason: reason,
+            granted_by: grantedBy,
+            balance: newBalance,
+            date: date
+        }]);
 
         res.json({ success: true, newBalance: newBalance });
     } catch (err) {
@@ -120,34 +143,37 @@ app.post('/api/users/:userId/grant', (req, res) => {
     }
 });
 
-
 // SWAG減数(管理者用)
-app.post('/api/users/:userId/deduct', (req, res) => {
+app.post('/api/users/:userId/deduct', async (req, res) => {
     const { userId } = req.params;
     const { amount, reason, deductedBy } = req.body;
 
     try {
-        const user = db.prepare('SELECT swag FROM users WHERE id = ?').get(userId);
-        if (!user) return res.status(404).json({ error: 'ユーザーが見つかりません' });
+        const { data: user, error } = await supabase
+            .from('users')
+            .select('swag')
+            .eq('id', userId)
+            .single();
+
+        if (error || !user) return res.status(404).json({ error: 'ユーザーが見つかりません' });
         if (user.swag < amount) return res.status(400).json({ error: '所持SWAG数が不足しています' });
 
         const newBalance = user.swag - amount;
         const date = new Date().toISOString();
 
-        db.prepare('UPDATE users SET swag = ? WHERE id = ?').run(newBalance, userId);
+        await supabase
+            .from('users')
+            .update({ swag: newBalance })
+            .eq('id', userId);
 
-        // 減数履歴テーブルに記録を追加
-        db.exec(`CREATE TABLE IF NOT EXISTS deduct_history (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id TEXT,
-            amount INTEGER,
-            reason TEXT,
-            deducted_by TEXT,
-            balance INTEGER,
-            date TEXT
-        )`);
-
-        db.prepare('INSERT INTO deduct_history (user_id, amount, reason, deducted_by, balance, date) VALUES (?, ?, ?, ?, ?, ?)').run(userId, amount, reason, deductedBy, newBalance, date);
+        await supabase.from('deduct_history').insert([{
+            user_id: userId,
+            amount: amount,
+            reason: reason,
+            deducted_by: deductedBy,
+            balance: newBalance,
+            date: date
+        }]);
 
         res.json({ success: true, newBalance: newBalance });
     } catch (err) {
@@ -156,33 +182,28 @@ app.post('/api/users/:userId/deduct', (req, res) => {
     }
 });
 
-
 // 使用履歴・付与履歴・減数履歴取得
-app.get('/api/users/:userId/history', (req, res) => {
+app.get('/api/users/:userId/history', async (req, res) => {
     const { userId } = req.params;
 
     try {
-        let useHistory = [];
-        let grantHistory = [];
-        let deductHistory = [];
+        const { data: useHistory } = await supabase
+            .from('use_history')
+            .select('*')
+            .eq('user_id', userId)
+            .order('date', { ascending: false });
 
-        try {
-            useHistory = db.prepare('SELECT * FROM use_history WHERE user_id = ? ORDER BY date DESC').all(userId);
-        } catch (err) {
-            console.error('使用履歴取得エラー:', err);
-        }
+        const { data: grantHistory } = await supabase
+            .from('grant_history')
+            .select('*')
+            .eq('user_id', userId)
+            .order('date', { ascending: false });
 
-        try {
-            grantHistory = db.prepare('SELECT * FROM grant_history WHERE user_id = ? ORDER BY date DESC').all(userId);
-        } catch (err) {
-            console.error('付与履歴取得エラー:', err);
-        }
-
-        try {
-            deductHistory = db.prepare('SELECT * FROM deduct_history WHERE user_id = ? ORDER BY date DESC').all(userId);
-        } catch (err) {
-            console.error('減数履歴取得エラー:', err);
-        }
+        const { data: deductHistory } = await supabase
+            .from('deduct_history')
+            .select('*')
+            .eq('user_id', userId)
+            .order('date', { ascending: false });
 
         res.json({
             useHistory: useHistory || [],
@@ -196,9 +217,14 @@ app.get('/api/users/:userId/history', (req, res) => {
 });
 
 // ユーザー一覧取得(管理者用)
-app.get('/api/users', (req, res) => {
+app.get('/api/users', async (req, res) => {
     try {
-        const users = db.prepare('SELECT id, name, swag, is_admin FROM users ORDER BY id').all();
+        const { data: users, error } = await supabase
+            .from('users')
+            .select('id, name, swag, is_admin')
+            .order('id');
+
+        if (error) return res.status(500).json({ error: 'データベースエラー' });
         res.json(users);
     } catch (err) {
         console.error('エラー:', err);
@@ -207,18 +233,26 @@ app.get('/api/users', (req, res) => {
 });
 
 // ユーザー追加(管理者用)
-app.post('/api/users', (req, res) => {
+app.post('/api/users', async (req, res) => {
     const { id, name, swag, isAdmin } = req.body;
 
     try {
-        // ユーザーIDの重複チェック
-        const existingUser = db.prepare('SELECT id FROM users WHERE id = ?').get(id);
+        const { data: existingUser } = await supabase
+            .from('users')
+            .select('id')
+            .eq('id', id)
+            .single();
+
         if (existingUser) {
             return res.status(400).json({ error: 'このユーザーIDは既に使用されています' });
         }
 
-        // 新しいユーザーを追加
-        db.prepare('INSERT INTO users (id, name, swag, is_admin) VALUES (?, ?, ?, ?)').run(id, name, swag || 0, isAdmin ? 1 : 0);
+        await supabase.from('users').insert([{
+            id: id,
+            name: name,
+            swag: swag || 0,
+            is_admin: isAdmin || false
+        }]);
 
         res.json({ success: true, message: 'ユーザーを追加しました' });
     } catch (err) {
@@ -228,15 +262,23 @@ app.post('/api/users', (req, res) => {
 });
 
 // ユーザー編集(管理者用)
-app.put('/api/users/:userId', (req, res) => {
+app.put('/api/users/:userId', async (req, res) => {
     const { userId } = req.params;
     const { name, swag, isAdmin } = req.body;
 
     try {
-        const user = db.prepare('SELECT id FROM users WHERE id = ?').get(userId);
-        if (!user) return res.status(404).json({ error: 'ユーザーが見つかりません' });
+        const { data: user, error } = await supabase
+            .from('users')
+            .select('id')
+            .eq('id', userId)
+            .single();
 
-        db.prepare('UPDATE users SET name = ?, swag = ?, is_admin = ? WHERE id = ?').run(name, swag, isAdmin ? 1 : 0, userId);
+        if (error || !user) return res.status(404).json({ error: 'ユーザーが見つかりません' });
+
+        await supabase
+            .from('users')
+            .update({ name: name, swag: swag, is_admin: isAdmin })
+            .eq('id', userId);
 
         res.json({ success: true, message: 'ユーザー情報を更新しました' });
     } catch (err) {
@@ -246,14 +288,22 @@ app.put('/api/users/:userId', (req, res) => {
 });
 
 // ユーザー削除(管理者用)
-app.delete('/api/users/:userId', (req, res) => {
+app.delete('/api/users/:userId', async (req, res) => {
     const { userId } = req.params;
 
     try {
-        const user = db.prepare('SELECT id FROM users WHERE id = ?').get(userId);
-        if (!user) return res.status(404).json({ error: 'ユーザーが見つかりません' });
+        const { data: user, error } = await supabase
+            .from('users')
+            .select('id')
+            .eq('id', userId)
+            .single();
 
-        db.prepare('DELETE FROM users WHERE id = ?').run(userId);
+        if (error || !user) return res.status(404).json({ error: 'ユーザーが見つかりません' });
+
+        await supabase
+            .from('users')
+            .delete()
+            .eq('id', userId);
 
         res.json({ success: true, message: 'ユーザーを削除しました' });
     } catch (err) {
@@ -262,11 +312,7 @@ app.delete('/api/users/:userId', (req, res) => {
     }
 });
 
-
 app.listen(PORT, '0.0.0.0', () => {
     console.log(`サーバーが起動しました: http://localhost:${PORT}`);
     console.log(`ネットワークアクセス: http://[IP_ADDRESS]:${PORT}`);
 });
-
-
-
