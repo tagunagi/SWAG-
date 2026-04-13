@@ -1,0 +1,70 @@
+name: Daily Supabase Backup
+
+on:
+  schedule:
+    # 毎日午前3時（日本時間）に実行
+    - cron: '0 18 * * *'  # UTC 18:00 = JST 03:00
+  workflow_dispatch:  # 手動実行も可能
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+
+      - name: Install dependencies
+        run: npm install @supabase/supabase-js
+
+      - name: Create backups directory
+        run: mkdir -p backups
+
+      - name: Backup Supabase data
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+        run: |
+          node -e "
+          const { createClient } = require('@supabase/supabase-js');
+          const fs = require('fs');
+
+          const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY);
+
+          async function backup() {
+            const date = new Date().toISOString().split('T');
+
+            // usersテーブルのバックアップ
+            const { data: users } = await supabase.from('users').select('*');
+            fs.writeFileSync(\`backups/users_\${date}.json\`, JSON.stringify(users, null, 2));
+
+            // use_historyテーブルのバックアップ
+            const { data: useHistory } = await supabase.from('use_history').select('*');
+            fs.writeFileSync(\`backups/use_history_\${date}.json\`, JSON.stringify(useHistory, null, 2));
+
+            // grant_historyテーブルのバックアップ
+            const { data: grantHistory } = await supabase.from('grant_history').select('*');
+            fs.writeFileSync(\`backups/grant_history_\${date}.json\`, JSON.stringify(grantHistory, null, 2));
+
+            // deduct_historyテーブルのバックアップ
+            const { data: deductHistory } = await supabase.from('deduct_history').select('*');
+            fs.writeFileSync(\`backups/deduct_history_\${date}.json\`, JSON.stringify(deductHistory, null, 2));
+
+            console.log('バックアップ完了:', date);
+          }
+
+          backup();
+          "
+
+      - name: Commit and push backup
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add backups/
+          git commit -m "自動バックアップ: $(date +'%Y-%m-%d')" || echo "変更なし"
+          git push
