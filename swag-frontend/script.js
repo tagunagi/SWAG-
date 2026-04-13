@@ -300,7 +300,7 @@ function displayGrantHistory(history) {
             <td>${formatDate(item.date)}</td>
             <td>${item.amount}</td>
             <td>${item.reason || '-'}</td>
-            <td>${item.granted_by || '-'}</td>
+            <td>${item.granted_by || '-'}</td>  ← granted_by に修正
             <td>${item.balance}</td>
         `;
         tbody.appendChild(row);
@@ -323,7 +323,7 @@ function displayDeductHistory(history) {
             <td>${formatDate(item.date)}</td>
             <td>${item.amount}</td>
             <td>${item.reason || '-'}</td>
-            <td>${item.deducted_by || '-'}</td>
+            <td>${item.deducted_by || '-'}</td>  ← deducted_by に修正
             <td>${item.balance}</td>
         `;
         tbody.appendChild(row);
