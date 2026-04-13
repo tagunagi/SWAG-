@@ -1,9 +1,21 @@
 // API設定
-// TODO: あなたのPCのIPアドレスに変更してください
 const API_BASE_URL = 'https://swagguan-li-dian-zi-hua.onrender.com/api';
 
 // グローバル変数
 let currentUser = null;
+
+// ページ読み込み時にログイン状態をクリア（不具合1の修正）
+window.addEventListener('load', function() {
+    // ログイン状態をクリア
+    currentUser = null;
+
+    // ログイン画面を表示、管理画面を非表示
+    const loginSection = document.getElementById('loginSection');
+    const managementSection = document.getElementById('managementSection');
+
+    if (loginSection) loginSection.style.display = 'block';
+    if (managementSection) managementSection.style.display = 'none';
+});
 
 // ページ読み込み時の初期化
 document.addEventListener('DOMContentLoaded', function() {
@@ -116,7 +128,7 @@ async function handleUse(event) {
         // フォームをリセット
         document.getElementById('useForm').reset();
 
-        // 履歴を再読み込み
+        // 履歴を再読み込み（不具合2の修正）
         await loadHistory();
 
         alert('SWAGを使用しました');
@@ -161,8 +173,10 @@ async function handleGrant(event) {
         if (targetUserId === currentUser.id) {
             currentUser.swag = data.newBalance;
             document.getElementById('swagBalance').textContent = data.newBalance;
-            await loadHistory();
         }
+
+        // 履歴を再読み込み（不具合2の修正）
+        await loadHistory();
 
         alert('SWAGを付与しました');
 
@@ -206,8 +220,10 @@ async function handleDeduct(event) {
         if (targetUserId === currentUser.id) {
             currentUser.swag = data.newBalance;
             document.getElementById('swagBalance').textContent = data.newBalance;
-            await loadHistory();
         }
+
+        // 履歴を再読み込み（不具合2の修正）
+        await loadHistory();
 
         alert('SWAGを減数しました');
 
@@ -284,7 +300,7 @@ function displayGrantHistory(history) {
             <td>${formatDate(item.date)}</td>
             <td>${item.amount}</td>
             <td>${item.reason || '-'}</td>
-            <td>${item.grantedBy}</td>
+            <td>${item.granted_by || '-'}</td>
             <td>${item.balance}</td>
         `;
         tbody.appendChild(row);
@@ -307,7 +323,7 @@ function displayDeductHistory(history) {
             <td>${formatDate(item.date)}</td>
             <td>${item.amount}</td>
             <td>${item.reason || '-'}</td>
-            <td>${item.deductedBy}</td>
+            <td>${item.deducted_by || '-'}</td>
             <td>${item.balance}</td>
         `;
         tbody.appendChild(row);
