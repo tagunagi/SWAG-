@@ -63,6 +63,7 @@ app.post('/api/login', async (req, res) => {
             isAdmin: user.is_admin
         });
     } catch (err) {
+        console.error('ログインエラー:', err);
         return res.status(500).json({ error: 'データベースエラー' });
     }
 });
@@ -85,12 +86,19 @@ app.post('/api/users/:userId/use', async (req, res) => {
         const newBalance = user.swag - amount;
         const date = new Date().toISOString();
 
-        await supabase
+        // ユーザーのSWAG残高を更新
+        const { error: updateError } = await supabase
             .from('users')
             .update({ swag: newBalance })
             .eq('id', userId);
 
-        await supabase.from('use_history').insert([{
+        if (updateError) {
+            console.error('SWAG残高更新エラー:', updateError);
+            return res.status(500).json({ error: 'SWAG残高の更新に失敗しました' });
+        }
+
+        // 使用履歴を保存
+        const { error: historyError } = await supabase.from('use_history').insert([{
             user_id: userId,
             amount: amount,
             reason: reason,
@@ -98,9 +106,15 @@ app.post('/api/users/:userId/use', async (req, res) => {
             date: date
         }]);
 
+        if (historyError) {
+            console.error('使用履歴の保存エラー:', historyError);
+            return res.status(500).json({ error: '使用履歴の保存に失敗しました' });
+        }
+
+        console.log('SWAG使用成功:', { userId, amount, newBalance });
         res.json({ success: true, newBalance: newBalance });
     } catch (err) {
-        console.error('エラー:', err);
+        console.error('SWAG使用エラー:', err);
         return res.status(500).json({ error: 'データベースエラー' });
     }
 });
@@ -122,12 +136,19 @@ app.post('/api/users/:userId/grant', async (req, res) => {
         const newBalance = user.swag + amount;
         const date = new Date().toISOString();
 
-        await supabase
+        // ユーザーのSWAG残高を更新
+        const { error: updateError } = await supabase
             .from('users')
             .update({ swag: newBalance })
             .eq('id', userId);
 
-        await supabase.from('grant_history').insert([{
+        if (updateError) {
+            console.error('SWAG残高更新エラー:', updateError);
+            return res.status(500).json({ error: 'SWAG残高の更新に失敗しました' });
+        }
+
+        // 付与履歴を保存
+        const { error: historyError } = await supabase.from('grant_history').insert([{
             user_id: userId,
             amount: amount,
             reason: reason,
@@ -136,9 +157,15 @@ app.post('/api/users/:userId/grant', async (req, res) => {
             date: date
         }]);
 
+        if (historyError) {
+            console.error('付与履歴の保存エラー:', historyError);
+            return res.status(500).json({ error: '付与履歴の保存に失敗しました' });
+        }
+
+        console.log('SWAG付与成功:', { userId, amount, newBalance });
         res.json({ success: true, newBalance: newBalance });
     } catch (err) {
-        console.error('エラー:', err);
+        console.error('SWAG付与エラー:', err);
         return res.status(500).json({ error: 'データベースエラー' });
     }
 });
@@ -161,12 +188,19 @@ app.post('/api/users/:userId/deduct', async (req, res) => {
         const newBalance = user.swag - amount;
         const date = new Date().toISOString();
 
-        await supabase
+        // ユーザーのSWAG残高を更新
+        const { error: updateError } = await supabase
             .from('users')
             .update({ swag: newBalance })
             .eq('id', userId);
 
-        await supabase.from('deduct_history').insert([{
+        if (updateError) {
+            console.error('SWAG残高更新エラー:', updateError);
+            return res.status(500).json({ error: 'SWAG残高の更新に失敗しました' });
+        }
+
+        // 減数履歴を保存
+        const { error: historyError } = await supabase.from('deduct_history').insert([{
             user_id: userId,
             amount: amount,
             reason: reason,
@@ -175,9 +209,15 @@ app.post('/api/users/:userId/deduct', async (req, res) => {
             date: date
         }]);
 
+        if (historyError) {
+            console.error('減数履歴の保存エラー:', historyError);
+            return res.status(500).json({ error: '減数履歴の保存に失敗しました' });
+        }
+
+        console.log('SWAG減数成功:', { userId, amount, newBalance });
         res.json({ success: true, newBalance: newBalance });
     } catch (err) {
-        console.error('エラー:', err);
+        console.error('SWAG減数エラー:', err);
         return res.status(500).json({ error: 'データベースエラー' });
     }
 });
@@ -205,13 +245,19 @@ app.get('/api/users/:userId/history', async (req, res) => {
             .eq('user_id', userId)
             .order('date', { ascending: false });
 
+        console.log('履歴取得成功:', {
+            useHistory: useHistory?.length || 0,
+            grantHistory: grantHistory?.length || 0,
+            deductHistory: deductHistory?.length || 0
+        });
+
         res.json({
             useHistory: useHistory || [],
             grantHistory: grantHistory || [],
             deductHistory: deductHistory || []
         });
     } catch (err) {
-        console.error('エラー:', err);
+        console.error('履歴取得エラー:', err);
         return res.status(500).json({ error: 'データベースエラー' });
     }
 });
@@ -227,7 +273,7 @@ app.get('/api/users', async (req, res) => {
         if (error) return res.status(500).json({ error: 'データベースエラー' });
         res.json(users);
     } catch (err) {
-        console.error('エラー:', err);
+        console.error('ユーザー一覧取得エラー:', err);
         return res.status(500).json({ error: 'データベースエラー' });
     }
 });
@@ -256,7 +302,7 @@ app.post('/api/users', async (req, res) => {
 
         res.json({ success: true, message: 'ユーザーを追加しました' });
     } catch (err) {
-        console.error('エラー:', err);
+        console.error('ユーザー追加エラー:', err);
         return res.status(500).json({ error: 'データベースエラー' });
     }
 });
@@ -282,7 +328,7 @@ app.put('/api/users/:userId', async (req, res) => {
 
         res.json({ success: true, message: 'ユーザー情報を更新しました' });
     } catch (err) {
-        console.error('エラー:', err);
+        console.error('ユーザー編集エラー:', err);
         return res.status(500).json({ error: 'データベースエラー' });
     }
 });
@@ -307,7 +353,7 @@ app.delete('/api/users/:userId', async (req, res) => {
 
         res.json({ success: true, message: 'ユーザーを削除しました' });
     } catch (err) {
-        console.error('エラー:', err);
+        console.error('ユーザー削除エラー:', err);
         return res.status(500).json({ error: 'データベースエラー' });
     }
 });
