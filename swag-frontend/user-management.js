@@ -1,4 +1,6 @@
 const API_BASE_URL = 'https://swagguan-li-dian-zi-hua.onrender.com/api';
+const urlParams = new URLSearchParams(window.location.search);
+const currentAdminId = urlParams.get('userId') || 'admin';
 
 document.addEventListener('DOMContentLoaded', function() {
     loadUsers();
