@@ -210,6 +210,6 @@ app.delete('/api/users/:userId', async (req, res) => {
     }
 });
 
-app.listen(PORT, '[IP_ADDRESS]', () => {
+app.listen(PORT, '0.0.0.0', () => {
     console.log(`サーバーが起動しました: http://localhost:${PORT}`);
 });
