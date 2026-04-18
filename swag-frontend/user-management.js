@@ -150,7 +150,7 @@ async function handleGrant(event) {
         const response = await fetch(API_BASE_URL + '/users/' + targetUserId + '/grant', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ amount: amount, reason: reason, grantedBy: 'admin' })
+            body: JSON.stringify({ amount: amount, reason: reason, grantedBy: currentAdminId })
         });
         if (!response.ok) {
             const errorData = await response.json();
@@ -173,7 +173,7 @@ async function handleDeduct(event) {
         const response = await fetch(API_BASE_URL + '/users/' + targetUserId + '/deduct', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ amount: amount, reason: reason, deductedBy: 'admin' })
+            body: JSON.stringify({ amount: amount, reason: reason, deductedBy: currentAdminId })
         });
         if (!response.ok) {
             const errorData = await response.json();
@@ -201,7 +201,7 @@ async function handleBulkGrant(event) {
         const response = await fetch(API_BASE_URL + '/users/bulk-grant', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ userIds: userIds, amount: amount, reason: reason, grantedBy: 'admin' })
+            body: JSON.stringify({ userIds: userIds, amount: amount, reason: reason, grantedBy: currentAdminId })
         });
         if (!response.ok) {
             const errorData = await response.json();
