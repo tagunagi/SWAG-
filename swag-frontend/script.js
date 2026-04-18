@@ -172,8 +172,7 @@ async function handleBulkGrant(event) {
     const userIdsText = document.getElementById('bulkGrantUserIds').value;
     const amount = parseInt(document.getElementById('bulkGrantAmount').value);
     const reason = document.getElementById('bulkGrantReason').value;
-    const userIds = userIdsText.split('
-').map(id => id.trim()).filter(id => id !== '');
+    const userIds = userIdsText.split(String.fromCharCode(10)).map(id => id.trim()).filter(id => id !== '');
     if (userIds.length === 0) {
         alert('ユーザーIDを入力してください');
         return;
