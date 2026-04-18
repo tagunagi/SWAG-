@@ -203,14 +203,13 @@ async function handleBulkGrant(event) {
 // 一括ユーザー追加処理（管理者用）
 async function handleBulkAdd(event) {
     event.preventDefault();
-    const jsonText = document.getElementById('bulkAddJson').value;
-    let users;
-    try {
-        users = JSON.parse(jsonText);
-    } catch (e) {
-        alert('JSONの形式が正しくありません。確認してください。');
+    const idsText = document.getElementById('bulkAddJson').value;
+    const ids = idsText.split(String.fromCharCode(10)).map(id => id.trim()).filter(id => id !== '');
+    if (ids.length === 0) {
+        alert('ログインIDを入力してください');
         return;
     }
+    const users = ids.map(id => ({ id: id, name: id, swag: 0, is_admin: false }));
     try {
         const response = await fetch(`${API_BASE_URL}/users/bulk`, {
             method: 'POST',
@@ -225,9 +224,9 @@ async function handleBulkAdd(event) {
         const successCount = data.results.filter(r => r.status === '追加成功').length;
         const skipCount = data.results.filter(r => r.status !== '追加成功').length;
         document.getElementById('bulkAddForm').reset();
-        alert(`一括追加完了！
-追加成功: ${successCount}件
-スキップ（既存）: ${skipCount}件`);
+        alert('一括追加完了！
+追加成功: ' + successCount + '件
+スキップ（既存）: ' + skipCount + '件');
     } catch (error) {
         alert('エラー: ' + error.message);
     }
