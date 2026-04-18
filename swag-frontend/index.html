@@ -6,32 +6,30 @@
     <title>SWAG管理システム</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; background-color: #f5f5f5; padding: 10px; font-size: 16px; }
+        body { font-family: 'Meiryo UI', Meiryo, sans-serif; background-color: #f5f5f5; padding: 10px; font-size: 16px; }
         .container { background-color: white; padding: 20px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); max-width: 600px; margin: 0 auto; }
         h1 { color: #333; font-size: 24px; margin-bottom: 20px; text-align: center; }
         h2 { color: #333; font-size: 20px; margin-top: 30px; margin-bottom: 15px; }
         h3 { color: #555; font-size: 18px; margin-top: 20px; margin-bottom: 10px; }
         .form-group { margin-bottom: 20px; }
         label { display: block; margin-bottom: 8px; font-weight: 600; color: #555; font-size: 14px; }
-        input[type="text"], input[type="number"], textarea { width: 100%; padding: 12px; border: 2px solid #ddd; border-radius: 8px; font-size: 16px; transition: border-color 0.3s; }
+        input[type="text"], input[type="number"], textarea { width: 100%; padding: 12px; border: 2px solid #ddd; border-radius: 8px; font-size: 16px; font-family: 'Meiryo UI', Meiryo, sans-serif; transition: border-color 0.3s; }
         input[type="text"]:focus, input[type="number"]:focus, textarea:focus { outline: none; border-color: #007bff; }
         textarea { resize: vertical; min-height: 80px; }
-        button { width: 100%; background-color: #007bff; color: white; padding: 14px; border: none; border-radius: 8px; font-size: 16px; font-weight: 600; cursor: pointer; margin-top: 10px; transition: background-color 0.3s; }
+        button { width: 100%; background-color: #007bff; color: white; padding: 14px; border: none; border-radius: 8px; font-size: 16px; font-weight: 600; font-family: 'Meiryo UI', Meiryo, sans-serif; cursor: pointer; margin-top: 10px; transition: background-color 0.3s; }
         button:active { background-color: #0056b3; }
         .logout-btn { background-color: #dc3545; margin-top: 20px; }
         .logout-btn:active { background-color: #c82333; }
-        .export-btn { background-color: #28a745; }
-        .export-btn:active { background-color: #1e7e34; }
         table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 14px; }
         th, td { padding: 12px 8px; text-align: left; border-bottom: 1px solid #ddd; }
         th { background-color: #f8f9fa; font-weight: 600; color: #555; }
         .user-info { background-color: #e9ecef; padding: 15px; border-radius: 8px; margin-bottom: 20px; }
         .user-info p { margin: 8px 0; font-size: 16px; }
+        .swag-balance { font-size: 28px; font-weight: bold; color: #007bff; }
         .admin-section { background-color: #fff3cd; padding: 20px; border-radius: 8px; margin-top: 20px; }
         .history-section { margin-top: 30px; }
         #managementSection { display: none; }
         #adminMenu { display: none; }
-        .note { font-size: 13px; color: #666; margin-bottom: 10px; }
         @media (max-width: 768px) {
             body { padding: 5px; }
             .container { padding: 15px; }
@@ -40,6 +38,7 @@
             h3 { font-size: 16px; }
             table { font-size: 12px; }
             th, td { padding: 8px 4px; }
+            .swag-balance { font-size: 24px; }
         }
     </style>
 </head>
@@ -64,7 +63,7 @@
         <!-- ユーザー情報 -->
         <div class="user-info">
             <p><strong>ユーザー名:</strong> <span id="userName"></span></p>
-            <p><strong>現在のSWAG:</strong> <span id="swagBalance"></span></p>
+            <p><strong>現在のSWAG:</strong> <span id="swagBalance" class="swag-balance"></span></p>
             <button id="logoutBtn" class="logout-btn">ログアウト</button>
         </div>
 
@@ -85,85 +84,9 @@
         <!-- 管理者メニュー -->
         <div id="adminMenu" class="admin-section">
             <h2>管理者メニュー</h2>
-
-            <!-- ユーザー管理へのリンク -->
             <div style="margin-bottom: 20px;">
-                <a href="user-management.html" style="display: inline-block; padding: 12px 20px; background-color: #28a745; color: white; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 16px;">ユーザー管理画面を開く</a>
+                <a href="user-management.html" style="display: inline-block; padding: 12px 20px; background-color: #28a745; color: white; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 16px; font-family: 'Meiryo UI', Meiryo, sans-serif;">ユーザー管理画面を開く</a>
             </div>
-
-            <!-- SWAG付与 -->
-            <h3>SWAG付与</h3>
-            <form id="grantForm">
-                <div class="form-group">
-                    <label for="grantUserId">対象ユーザーID:</label>
-                    <input type="text" id="grantUserId" required>
-                </div>
-                <div class="form-group">
-                    <label for="grantAmount">付与SWAG数:</label>
-                    <input type="number" id="grantAmount" min="1" required>
-                </div>
-                <div class="form-group">
-                    <label for="grantReason">理由:</label>
-                    <textarea id="grantReason" rows="3" required></textarea>
-                </div>
-                <button type="submit">付与</button>
-            </form>
-
-            <!-- SWAG減数 -->
-            <h3>SWAG減数</h3>
-            <form id="deductForm">
-                <div class="form-group">
-                    <label for="deductUserId">対象ユーザーID:</label>
-                    <input type="text" id="deductUserId" required>
-                </div>
-                <div class="form-group">
-                    <label for="deductAmount">減数SWAG数:</label>
-                    <input type="number" id="deductAmount" min="1" required>
-                </div>
-                <div class="form-group">
-                    <label for="deductReason">理由:</label>
-                    <textarea id="deductReason" rows="3" required></textarea>
-                </div>
-                <button type="submit">減数</button>
-            </form>
-
-            <!-- 一括SWAG付与 -->
-            <h3>一括SWAG付与</h3>
-            <p class="note">複数のユーザーIDを1行に1つずつ入力してください。</p>
-            <form id="bulkGrantForm">
-                <div class="form-group">
-                    <label for="bulkGrantUserIds">対象ユーザーID（1行に1つ）:</label>
-                    <textarea id="bulkGrantUserIds" rows="5" placeholder="user001
-user002
-user003" required></textarea>
-                </div>
-                <div class="form-group">
-                    <label for="bulkGrantAmount">付与SWAG数:</label>
-                    <input type="number" id="bulkGrantAmount" min="1" required>
-                </div>
-                <div class="form-group">
-                    <label for="bulkGrantReason">理由:</label>
-                    <textarea id="bulkGrantReason" rows="3" required></textarea>
-                </div>
-                <button type="submit">一括付与</button>
-            </form>
-
-            <!-- 一括ユーザー追加 -->
-　　　　　   <h3>一括ユーザー追加</h3>
-            <p class="note">ログインIDを1行に1つずつ入力してください。名前はIDと同じ、SWAG数は0で登録されます。</p>
-            <form id="bulkAddForm">
-                <div class="form-group">
-                    <label for="bulkAddJson">ログインID（1行に1つ）:</label>
-                    <textarea id="bulkAddJson" rows="8" placeholder="user001&#10;user002&#10;user003" required></textarea>
-                </div>
-                <button type="submit">一括追加</button>
-            </form>
-
-            <!-- CSVエクスポート -->
-            <h3>データエクスポート</h3>
-            <p class="note">ログインID・名前・所持SWAGの一覧をCSVでダウンロードします。</p>
-            <button id="exportBtn" class="export-btn">CSVエクスポート</button>
-
         </div>
 
         <!-- 履歴表示 -->
