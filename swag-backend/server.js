@@ -83,7 +83,7 @@ app.get('/api/users/export', async (req, res) => {
     try {
         const { data: users, error } = await supabase.from('users').select('id, name, swag, is_admin').order('id');
         if (error) return res.status(500).json({ error: 'データベースエラー' });
-        const lines = ['\u30ed\u30b0\u30a4\u30f3ID,\u540d\u524d,\u6240\u6301SWAG,\u6a29\u9650'];
+        const lines = ['ログインID,名前,所持SWAG,権限'];
         users.forEach(u => lines.push(u.id + ',' + u.name + ',' + u.swag + ',' + (u.is_admin ? '\u7ba1\u7406\u8005' : '\u4e00\u822c')));
         const csv = lines.join('
 ');
