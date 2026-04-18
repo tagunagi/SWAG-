@@ -57,7 +57,10 @@ async function handleLogin(event) {
         } else {
             document.getElementById('adminMenu').style.display = 'none';
         }
+        var mgmtLink = document.getElementById('userMgmtLink');
+        if (mgmtLink) mgmtLink.href = 'user-management.html?userId=' + data.id;
         await loadHistory();
+
     } catch (error) {
         alert('エラー: ' + error.message);
     }
