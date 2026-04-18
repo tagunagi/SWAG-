@@ -103,7 +103,7 @@ app.get('/api/users/export', async (req, res) => {
 
         const sheet2 = workbook.addWorksheet('付与履歴');
         sheet2.columns = [
-            { header: '日時', key: 'date', width: 25 },
+            { header: '日時（日本時間）', key: 'date', width: 25 },
             { header: '対象ユーザーID', key: 'user_id', width: 20 },
             { header: '付与SWAG数', key: 'amount', width: 15 },
             { header: '付与後残高', key: 'balance', width: 15 },
@@ -111,7 +111,15 @@ app.get('/api/users/export', async (req, res) => {
             { header: '付与した管理者', key: 'granted_by', width: 20 }
         ];
         grantHistory.forEach(function(h) {
-            sheet2.addRow({ date: h.date, user_id: h.user_id, amount: h.amount, balance: h.balance, reason: h.reason || '-', granted_by: h.granted_by || '-' });
+            var utcDate = new Date(h.date);
+            var jstDate = new Date(utcDate.getTime() + 9 * 60 * 60 * 1000);
+            var year = jstDate.getUTCFullYear();
+            var month = String(jstDate.getUTCMonth() + 1).padStart(2, '0');
+            var day = String(jstDate.getUTCDate()).padStart(2, '0');
+            var hours = String(jstDate.getUTCHours()).padStart(2, '0');
+            var minutes = String(jstDate.getUTCMinutes()).padStart(2, '0');
+            var jstString = year + '/' + month + '/' + day + ' ' + hours + ':' + minutes;
+            sheet2.addRow({ date: jstString, user_id: h.user_id, amount: h.amount, balance: h.balance, reason: h.reason || '-', granted_by: h.granted_by || '-' });
         });
 
         res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
