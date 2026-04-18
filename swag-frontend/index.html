@@ -149,12 +149,14 @@ user001" required></textarea>
             </form>
 
             <!-- 一括ユーザー追加 -->
-            <h3>一括ユーザー追加</h3>
-            <p class="note">JSON形式で入力してください。<br>例：[{"id":"user001","name":"山田 太郎","swag":100,"is_admin":false}]</p>
+　　　　　   <h3>一括ユーザー追加</h3>
+            <p class="note">ログインIDを1行に1つずつ入力してください。名前はIDと同じ、SWAG数は0で登録されます。</p>
             <form id="bulkAddForm">
                 <div class="form-group">
-                    <label for="bulkAddJson">ユーザーデータ（JSON）:</label>
-                    <textarea id="bulkAddJson" rows="8" placeholder='[{"id":"user001","name":"山田 太郎","swag":100,"is_admin":false}]' required></textarea>
+                    <label for="bulkAddJson">ログインID（1行に1つ）:</label>
+                    <textarea id="bulkAddJson" rows="8" placeholder="user001
+            user002
+            user003" required></textarea>
                 </div>
                 <button type="submit">一括追加</button>
             </form>
