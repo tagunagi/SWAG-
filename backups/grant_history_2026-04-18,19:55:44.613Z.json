@@ -1,0 +1,92 @@
+[
+  {
+    "id": 6,
+    "created_at": "2026-04-13T17:54:23.190665+00:00",
+    "user_id": "kuniyak",
+    "amount": 10,
+    "reason": "test",
+    "granted_by": "kuniyak",
+    "balance": 10,
+    "date": "2026-04-13T17:54:23.007+00:00"
+  },
+  {
+    "id": 7,
+    "created_at": "2026-04-14T05:54:30.793055+00:00",
+    "user_id": "amzn1",
+    "amount": 10,
+    "reason": "test\n",
+    "granted_by": "amzn1",
+    "balance": 10,
+    "date": "2026-04-14T05:54:30.571+00:00"
+  },
+  {
+    "id": 8,
+    "created_at": "2026-04-18T08:27:07.120163+00:00",
+    "user_id": "tagunagi",
+    "amount": 1,
+    "reason": "test",
+    "granted_by": "admin",
+    "balance": 1,
+    "date": "2026-04-18T08:27:06.941+00:00"
+  },
+  {
+    "id": 9,
+    "created_at": "2026-04-18T08:27:54.728837+00:00",
+    "user_id": "kuniyak",
+    "amount": 10,
+    "reason": "test",
+    "granted_by": "admin",
+    "balance": 10,
+    "date": "2026-04-18T08:27:54.434+00:00"
+  },
+  {
+    "id": 10,
+    "created_at": "2026-04-18T08:27:55.092458+00:00",
+    "user_id": "tagunagi",
+    "amount": 10,
+    "reason": "test",
+    "granted_by": "admin",
+    "balance": 10,
+    "date": "2026-04-18T08:27:54.434+00:00"
+  },
+  {
+    "id": 11,
+    "created_at": "2026-04-18T14:38:06.218224+00:00",
+    "user_id": "kuniyak",
+    "amount": 10,
+    "reason": "test",
+    "granted_by": "admin",
+    "balance": 10,
+    "date": "2026-04-18T14:38:06.011+00:00"
+  },
+  {
+    "id": 12,
+    "created_at": "2026-04-18T14:39:30.184716+00:00",
+    "user_id": "kuniyak",
+    "amount": 100,
+    "reason": "test",
+    "granted_by": "admin",
+    "balance": 110,
+    "date": "2026-04-18T14:39:29.771+00:00"
+  },
+  {
+    "id": 13,
+    "created_at": "2026-04-18T14:59:15.287592+00:00",
+    "user_id": "kuniyak",
+    "amount": 10,
+    "reason": "test",
+    "granted_by": "tagunagi",
+    "balance": 10,
+    "date": "2026-04-18T14:59:14.663+00:00"
+  },
+  {
+    "id": 14,
+    "created_at": "2026-04-18T14:59:15.598621+00:00",
+    "user_id": "tagunagi",
+    "amount": 10,
+    "reason": "test",
+    "granted_by": "tagunagi",
+    "balance": 10,
+    "date": "2026-04-18T14:59:14.663+00:00"
+  }
+]
