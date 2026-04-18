@@ -40,7 +40,7 @@ async function handleLogin(event) {
     event.preventDefault();
     const userId = document.getElementById('loginId').value;
     try {
-        const response = await fetch(`${API_BASE_URL}/login`, {
+        const response = await fetch(API_BASE_URL + '/login', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ userId: userId })
@@ -68,7 +68,7 @@ async function handleUse(event) {
     const amount = parseInt(document.getElementById('useAmount').value);
     const reason = document.getElementById('useReason').value;
     try {
-        const response = await fetch(`${API_BASE_URL}/users/${currentUser.id}/use`, {
+        const response = await fetch(API_BASE_URL + '/users/' + currentUser.id + '/use', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ amount: amount, reason: reason })
@@ -94,7 +94,7 @@ async function handleGrant(event) {
     const amount = parseInt(document.getElementById('grantAmount').value);
     const reason = document.getElementById('grantReason').value;
     try {
-        const response = await fetch(`${API_BASE_URL}/users/${targetUserId}/grant`, {
+        const response = await fetch(API_BASE_URL + '/users/' + targetUserId + '/grant', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ amount: amount, reason: reason, grantedBy: currentUser.id })
@@ -122,7 +122,7 @@ async function handleDeduct(event) {
     const amount = parseInt(document.getElementById('deductAmount').value);
     const reason = document.getElementById('deductReason').value;
     try {
-        const response = await fetch(`${API_BASE_URL}/users/${targetUserId}/deduct`, {
+        const response = await fetch(API_BASE_URL + '/users/' + targetUserId + '/deduct', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ amount: amount, reason: reason, deductedBy: currentUser.id })
@@ -144,12 +144,9 @@ async function handleDeduct(event) {
     }
 }
 
-// エクスポート処理（管理者用）
 async function handleExport() {
     try {
-        const response = await fetch(`${API_BASE_URL}/users/export`, {
-            method: 'GET'
-        });
+        const response = await fetch(API_BASE_URL + '/users/export', { method: 'GET' });
         if (!response.ok) throw new Error('エクスポートに失敗しました');
         const blob = await response.blob();
         const url = window.URL.createObjectURL(blob);
@@ -166,19 +163,18 @@ async function handleExport() {
     }
 }
 
-// 一括SWAG付与処理（管理者用）
 async function handleBulkGrant(event) {
     event.preventDefault();
     const userIdsText = document.getElementById('bulkGrantUserIds').value;
     const amount = parseInt(document.getElementById('bulkGrantAmount').value);
     const reason = document.getElementById('bulkGrantReason').value;
-    const userIds = userIdsText.split(String.fromCharCode(10)).map(id => id.trim()).filter(id => id !== '');
+    const userIds = userIdsText.split(String.fromCharCode(10)).map(function(id) { return id.trim(); }).filter(function(id) { return id !== ''; });
     if (userIds.length === 0) {
         alert('ユーザーIDを入力してください');
         return;
     }
     try {
-        const response = await fetch(`${API_BASE_URL}/users/bulk-grant`, {
+        const response = await fetch(API_BASE_URL + '/users/bulk-grant', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ userIds: userIds, amount: amount, reason: reason, grantedBy: currentUser.id })
@@ -188,30 +184,27 @@ async function handleBulkGrant(event) {
             throw new Error(errorData.error || '一括付与に失敗しました');
         }
         const data = await response.json();
-        const successCount = data.results.filter(r => r.status === '付与成功').length;
-        const failCount = data.results.filter(r => r.status !== '付与成功').length;
+        const successCount = data.results.filter(function(r) { return r.status === '付与成功'; }).length;
+        const failCount = data.results.filter(function(r) { return r.status !== '付与成功'; }).length;
         document.getElementById('bulkGrantForm').reset();
         await loadHistory();
-        alert(`一括付与完了！
-成功: ${successCount}件
-失敗: ${failCount}件`);
+        alert('一括付与完了！ 成功: ' + successCount + '件 / 失敗: ' + failCount + '件');
     } catch (error) {
         alert('エラー: ' + error.message);
     }
 }
 
-// 一括ユーザー追加処理（管理者用）
 async function handleBulkAdd(event) {
     event.preventDefault();
     const idsText = document.getElementById('bulkAddJson').value;
-    const ids = idsText.split(String.fromCharCode(10)).map(id => id.trim()).filter(id => id !== '');
+    const ids = idsText.split(String.fromCharCode(10)).map(function(id) { return id.trim(); }).filter(function(id) { return id !== ''; });
     if (ids.length === 0) {
         alert('ログインIDを入力してください');
         return;
     }
-    const users = ids.map(id => ({ id: id, name: id, swag: 0, is_admin: false }));
+    const users = ids.map(function(id) { return { id: id, name: id, swag: 0, is_admin: false }; });
     try {
-        const response = await fetch(`${API_BASE_URL}/users/bulk`, {
+        const response = await fetch(API_BASE_URL + '/users/bulk', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ users: users })
@@ -221,12 +214,10 @@ async function handleBulkAdd(event) {
             throw new Error(errorData.error || '一括追加に失敗しました');
         }
         const data = await response.json();
-        const successCount = data.results.filter(r => r.status === '追加成功').length;
-        const skipCount = data.results.filter(r => r.status !== '追加成功').length;
+        const successCount = data.results.filter(function(r) { return r.status === '追加成功'; }).length;
+        const skipCount = data.results.filter(function(r) { return r.status !== '追加成功'; }).length;
         document.getElementById('bulkAddForm').reset();
-        alert('一括追加完了！
-追加成功: ' + successCount + '件
-スキップ（既存）: ' + skipCount + '件');
+        alert('一括追加完了！ 追加成功: ' + successCount + '件 / スキップ（既存）: ' + skipCount + '件');
     } catch (error) {
         alert('エラー: ' + error.message);
     }
@@ -234,7 +225,7 @@ async function handleBulkAdd(event) {
 
 async function loadHistory() {
     try {
-        const response = await fetch(`${API_BASE_URL}/users/${currentUser.id}/history`, {
+        const response = await fetch(API_BASE_URL + '/users/' + currentUser.id + '/history', {
             method: 'GET',
             headers: { 'Content-Type': 'application/json' }
         });
@@ -255,7 +246,7 @@ function displayUseHistory(history) {
         tbody.innerHTML = '<tr><td colspan="4">履歴がありません</td></tr>';
         return;
     }
-    history.forEach(item => {
+    history.forEach(function(item) {
         const row = document.createElement('tr');
         row.innerHTML = '<td>' + formatDate(item.date) + '</td><td>' + item.amount + '</td><td>' + (item.reason || '-') + '</td><td>' + item.balance + '</td>';
         tbody.appendChild(row);
@@ -269,7 +260,7 @@ function displayGrantHistory(history) {
         tbody.innerHTML = '<tr><td colspan="5">履歴がありません</td></tr>';
         return;
     }
-    history.forEach(item => {
+    history.forEach(function(item) {
         const row = document.createElement('tr');
         row.innerHTML = '<td>' + formatDate(item.date) + '</td><td>' + item.amount + '</td><td>' + (item.reason || '-') + '</td><td>' + (item.granted_by || '-') + '</td><td>' + item.balance + '</td>';
         tbody.appendChild(row);
@@ -283,7 +274,7 @@ function displayDeductHistory(history) {
         tbody.innerHTML = '<tr><td colspan="5">履歴がありません</td></tr>';
         return;
     }
-    history.forEach(item => {
+    history.forEach(function(item) {
         const row = document.createElement('tr');
         row.innerHTML = '<td>' + formatDate(item.date) + '</td><td>' + item.amount + '</td><td>' + (item.reason || '-') + '</td><td>' + (item.deducted_by || '-') + '</td><td>' + item.balance + '</td>';
         tbody.appendChild(row);
