@@ -68,6 +68,111 @@ app.post('/api/login', async (req, res) => {
     }
 });
 
+// 一括ユーザー追加API（管理者用）
+app.post('/api/users/bulk', async (req, res) => {
+    const { users } = req.body;
+
+    try {
+        const results = [];
+        for (const user of users) {
+            const { data: existingUser } = await supabase
+                .from('users')
+                .select('id')
+                .eq('id', user.id)
+                .single();
+
+            if (!existingUser) {
+                await supabase.from('users').insert([{
+                    id: user.id,
+                    name: user.name,
+                    swag: user.swag || 0,
+                    is_admin: user.is_admin || false
+                }]);
+                results.push({ id: user.id, status: '追加成功' });
+            } else {
+                results.push({ id: user.id, status: '既存ユーザー（スキップ）' });
+            }
+        }
+        res.json({ success: true, results });
+    } catch (err) {
+        console.error('一括追加エラー:', err);
+        return res.status(500).json({ error: '一括追加に失敗しました' });
+    }
+});
+
+// 一括SWAG付与API（管理者用）
+app.post('/api/users/bulk-grant', async (req, res) => {
+    const { userIds, amount, reason, grantedBy } = req.body;
+
+    try {
+        const results = [];
+        const date = new Date().toISOString();
+
+        for (const userId of userIds) {
+            const { data: user, error } = await supabase
+                .from('users')
+                .select('swag')
+                .eq('id', userId)
+                .single();
+
+            if (error || !user) {
+                results.push({ id: userId, status: 'ユーザーが見つかりません' });
+                continue;
+            }
+
+            const newBalance = user.swag + amount;
+
+            await supabase
+                .from('users')
+                .update({ swag: newBalance })
+                .eq('id', userId);
+
+            await supabase.from('grant_history').insert([{
+                user_id: userId,
+                amount: amount,
+                reason: reason,
+                granted_by: grantedBy,
+                balance: newBalance,
+                date: date
+            }]);
+
+            results.push({ id: userId, status: '付与成功', newBalance });
+        }
+
+        res.json({ success: true, results });
+    } catch (err) {
+        console.error('一括付与エラー:', err);
+        return res.status(500).json({ error: '一括付与に失敗しました' });
+    }
+});
+
+// ユーザー一覧エクスポートAPI（管理者用）
+app.get('/api/users/export', async (req, res) => {
+    try {
+        const { data: users, error } = await supabase
+            .from('users')
+            .select('id, name, swag, is_admin')
+            .order('id');
+
+        if (error) return res.status(500).json({ error: 'データベースエラー' });
+
+        const csvHeader = 'ログインID,名前,所持SWAG,権限
+';
+        const csvRows = users.map(u =>
+            `${u.id},${u.name},${u.swag},${u.is_admin ? '管理者' : '一般'}`
+        ).join('
+');
+        const csv = csvHeader + csvRows;
+
+        res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+        res.setHeader('Content-Disposition', 'attachment; filename="swag_users.csv"');
+        res.send('\uFEFF' + csv);
+    } catch (err) {
+        console.error('エクスポートエラー:', err);
+        return res.status(500).json({ error: 'エクスポートに失敗しました' });
+    }
+});
+
 // SWAG使用
 app.post('/api/users/:userId/use', async (req, res) => {
     const { userId } = req.params;
@@ -86,7 +191,6 @@ app.post('/api/users/:userId/use', async (req, res) => {
         const newBalance = user.swag - amount;
         const date = new Date().toISOString();
 
-        // ユーザーのSWAG残高を更新
         const { error: updateError } = await supabase
             .from('users')
             .update({ swag: newBalance })
@@ -97,7 +201,6 @@ app.post('/api/users/:userId/use', async (req, res) => {
             return res.status(500).json({ error: 'SWAG残高の更新に失敗しました' });
         }
 
-        // 使用履歴を保存
         const { error: historyError } = await supabase.from('use_history').insert([{
             user_id: userId,
             amount: amount,
@@ -136,7 +239,6 @@ app.post('/api/users/:userId/grant', async (req, res) => {
         const newBalance = user.swag + amount;
         const date = new Date().toISOString();
 
-        // ユーザーのSWAG残高を更新
         const { error: updateError } = await supabase
             .from('users')
             .update({ swag: newBalance })
@@ -147,7 +249,6 @@ app.post('/api/users/:userId/grant', async (req, res) => {
             return res.status(500).json({ error: 'SWAG残高の更新に失敗しました' });
         }
 
-        // 付与履歴を保存
         const { error: historyError } = await supabase.from('grant_history').insert([{
             user_id: userId,
             amount: amount,
@@ -188,7 +289,6 @@ app.post('/api/users/:userId/deduct', async (req, res) => {
         const newBalance = user.swag - amount;
         const date = new Date().toISOString();
 
-        // ユーザーのSWAG残高を更新
         const { error: updateError } = await supabase
             .from('users')
             .update({ swag: newBalance })
@@ -199,7 +299,6 @@ app.post('/api/users/:userId/deduct', async (req, res) => {
             return res.status(500).json({ error: 'SWAG残高の更新に失敗しました' });
         }
 
-        // 減数履歴を保存
         const { error: historyError } = await supabase.from('deduct_history').insert([{
             user_id: userId,
             amount: amount,
@@ -357,6 +456,7 @@ app.delete('/api/users/:userId', async (req, res) => {
         return res.status(500).json({ error: 'データベースエラー' });
     }
 });
+
 
 app.listen(PORT, '0.0.0.0', () => {
     console.log(`サーバーが起動しました: http://localhost:${PORT}`);
