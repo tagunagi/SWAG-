@@ -17,8 +17,8 @@ console.log('Supabaseに接続しました');
 
 async function initializeDatabase() {
     const initialUsers = [
-        { id: 'kuniyak', name: 'クニヤ ケンタ', swag: 100, is_admin: false },
-        { id: 'tagunagi', name: 'タグチ ナギサ', swag: 500, is_admin: true }
+        { id: 'kuniyak', name: 'クニヤ ケンタ', swag: 0, is_admin: true },
+        { id: 'tagunagi', name: 'タグチ ナギサ', swag: 0, is_admin: true }
     ];
     for (const user of initialUsers) {
         const { data } = await supabase.from('users').select('id').eq('id', user.id).single();
@@ -81,15 +81,45 @@ app.post('/api/users/bulk-grant', async (req, res) => {
 
 app.get('/api/users/export', async (req, res) => {
     try {
-        const { data: users, error } = await supabase.from('users').select('id, name, swag, is_admin').order('id');
-        if (error) return res.status(500).json({ error: 'データベースエラー' });
-        const lines = ['ログインID,名前,所持SWAG,権限'];
-        users.forEach(u => lines.push(u.id + ',' + u.name + ',' + u.swag + ',' + (u.is_admin ? '管理者' : '一般')));
-        const csv = lines.join(String.fromCharCode(13, 10));
-        res.setHeader('Content-Type', 'text/csv; charset=utf-8');
-        res.setHeader('Content-Disposition', 'attachment; filename="swag_users.csv"');
-        res.send('\uFEFF' + csv);
+        const { data: users, error: usersError } = await supabase.from('users').select('id, name, swag, is_admin').order('id');
+        if (usersError) return res.status(500).json({ error: 'データベースエラー' });
+
+        const { data: grantHistory, error: grantError } = await supabase.from('grant_history').select('*').order('date', { ascending: false });
+        if (grantError) return res.status(500).json({ error: 'データベースエラー' });
+
+        const ExcelJS = require('exceljs');
+        const workbook = new ExcelJS.Workbook();
+
+        const sheet1 = workbook.addWorksheet('ユーザー一覧');
+        sheet1.columns = [
+            { header: 'ログインID', key: 'id', width: 20 },
+            { header: '名前', key: 'name', width: 20 },
+            { header: '所持SWAG', key: 'swag', width: 15 },
+            { header: '権限', key: 'role', width: 10 }
+        ];
+        users.forEach(function(u) {
+            sheet1.addRow({ id: u.id, name: u.name, swag: u.swag, role: (u.is_admin ? '管理者' : '一般') });
+        });
+
+        const sheet2 = workbook.addWorksheet('付与履歴');
+        sheet2.columns = [
+            { header: '日時', key: 'date', width: 25 },
+            { header: '対象ユーザーID', key: 'user_id', width: 20 },
+            { header: '付与SWAG数', key: 'amount', width: 15 },
+            { header: '付与後残高', key: 'balance', width: 15 },
+            { header: '理由', key: 'reason', width: 30 },
+            { header: '付与した管理者', key: 'granted_by', width: 20 }
+        ];
+        grantHistory.forEach(function(h) {
+            sheet2.addRow({ date: h.date, user_id: h.user_id, amount: h.amount, balance: h.balance, reason: h.reason || '-', granted_by: h.granted_by || '-' });
+        });
+
+        res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        res.setHeader('Content-Disposition', 'attachment; filename="swag_export.xlsx"');
+        await workbook.xlsx.write(res);
+        res.end();
     } catch (err) {
+        console.error('エクスポートエラー:', err);
         return res.status(500).json({ error: 'エクスポートに失敗しました' });
     }
 });
