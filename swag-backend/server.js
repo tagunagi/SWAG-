@@ -86,7 +86,7 @@ app.get('/api/users/export', async (req, res) => {
         const lines = ['ログインID,名前,所持SWAG,権限'];
         users.forEach(u => lines.push(u.id + ',' + u.name + ',' + u.swag + ',' + (u.is_admin ? '\u7ba1\u7406\u8005' : '\u4e00\u822c')));
         const csv = lines.join('
-');
+        ');
         res.setHeader('Content-Type', 'text/csv; charset=utf-8');
         res.setHeader('Content-Disposition', 'attachment; filename="swag_users.csv"');
         res.send('\uFEFF' + csv);
