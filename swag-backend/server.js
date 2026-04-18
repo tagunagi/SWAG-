@@ -156,8 +156,7 @@ app.get('/api/users/export', async (req, res) => {
 
         if (error) return res.status(500).json({ error: 'データベースエラー' });
 
-        const csvHeader = 'ログインID,名前,所持SWAG,権限
-';
+        const csvHeader = 'ログインID,名前,所持SWAG,権限';
         const csvRows = users.map(u =>
             `${u.id},${u.name},${u.swag},${u.is_admin ? '管理者' : '一般'}`
         ).join('
