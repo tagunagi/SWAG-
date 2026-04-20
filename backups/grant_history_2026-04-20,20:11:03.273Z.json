@@ -1,0 +1,162 @@
+[
+  {
+    "id": 6,
+    "created_at": "2026-04-13T17:54:23.190665+00:00",
+    "user_id": "kuniyak",
+    "amount": 10,
+    "reason": "test",
+    "granted_by": "kuniyak",
+    "balance": 10,
+    "date": "2026-04-13T17:54:23.007+00:00"
+  },
+  {
+    "id": 7,
+    "created_at": "2026-04-14T05:54:30.793055+00:00",
+    "user_id": "amzn1",
+    "amount": 10,
+    "reason": "test\n",
+    "granted_by": "amzn1",
+    "balance": 10,
+    "date": "2026-04-14T05:54:30.571+00:00"
+  },
+  {
+    "id": 8,
+    "created_at": "2026-04-18T08:27:07.120163+00:00",
+    "user_id": "tagunagi",
+    "amount": 1,
+    "reason": "test",
+    "granted_by": "admin",
+    "balance": 1,
+    "date": "2026-04-18T08:27:06.941+00:00"
+  },
+  {
+    "id": 9,
+    "created_at": "2026-04-18T08:27:54.728837+00:00",
+    "user_id": "kuniyak",
+    "amount": 10,
+    "reason": "test",
+    "granted_by": "admin",
+    "balance": 10,
+    "date": "2026-04-18T08:27:54.434+00:00"
+  },
+  {
+    "id": 10,
+    "created_at": "2026-04-18T08:27:55.092458+00:00",
+    "user_id": "tagunagi",
+    "amount": 10,
+    "reason": "test",
+    "granted_by": "admin",
+    "balance": 10,
+    "date": "2026-04-18T08:27:54.434+00:00"
+  },
+  {
+    "id": 11,
+    "created_at": "2026-04-18T14:38:06.218224+00:00",
+    "user_id": "kuniyak",
+    "amount": 10,
+    "reason": "test",
+    "granted_by": "admin",
+    "balance": 10,
+    "date": "2026-04-18T14:38:06.011+00:00"
+  },
+  {
+    "id": 12,
+    "created_at": "2026-04-18T14:39:30.184716+00:00",
+    "user_id": "kuniyak",
+    "amount": 100,
+    "reason": "test",
+    "granted_by": "admin",
+    "balance": 110,
+    "date": "2026-04-18T14:39:29.771+00:00"
+  },
+  {
+    "id": 13,
+    "created_at": "2026-04-18T14:59:15.287592+00:00",
+    "user_id": "kuniyak",
+    "amount": 10,
+    "reason": "test",
+    "granted_by": "tagunagi",
+    "balance": 10,
+    "date": "2026-04-18T14:59:14.663+00:00"
+  },
+  {
+    "id": 14,
+    "created_at": "2026-04-18T14:59:15.598621+00:00",
+    "user_id": "tagunagi",
+    "amount": 10,
+    "reason": "test",
+    "granted_by": "tagunagi",
+    "balance": 10,
+    "date": "2026-04-18T14:59:14.663+00:00"
+  },
+  {
+    "id": 15,
+    "created_at": "2026-04-18T22:49:29.134562+00:00",
+    "user_id": "tagunagi",
+    "amount": 1,
+    "reason": "Swag配布",
+    "granted_by": "tfunaoki",
+    "balance": 11,
+    "date": "2026-04-18T22:49:28.94+00:00"
+  },
+  {
+    "id": 16,
+    "created_at": "2026-04-19T00:19:07.535889+00:00",
+    "user_id": "tagunagi",
+    "amount": 1,
+    "reason": "Daily",
+    "granted_by": "hanamihs",
+    "balance": 12,
+    "date": "2026-04-19T00:19:07.184+00:00"
+  },
+  {
+    "id": 17,
+    "created_at": "2026-04-19T04:24:25.514972+00:00",
+    "user_id": "tagunagi",
+    "amount": 1,
+    "reason": "test",
+    "granted_by": "terakary",
+    "balance": 13,
+    "date": "2026-04-19T04:24:25.163+00:00"
+  },
+  {
+    "id": 18,
+    "created_at": "2026-04-19T10:23:20.11991+00:00",
+    "user_id": "tagunagi",
+    "amount": 1,
+    "reason": "daily",
+    "granted_by": "masktake",
+    "balance": 14,
+    "date": "2026-04-19T10:23:19.725+00:00"
+  },
+  {
+    "id": 19,
+    "created_at": "2026-04-19T10:31:19.65863+00:00",
+    "user_id": "tagunagi",
+    "amount": 1,
+    "reason": "声掛け",
+    "granted_by": "motnarit",
+    "balance": 15,
+    "date": "2026-04-19T10:31:19.289+00:00"
+  },
+  {
+    "id": 20,
+    "created_at": "2026-04-19T11:54:15.655853+00:00",
+    "user_id": "tagunagi",
+    "amount": 1,
+    "reason": "deiri",
+    "granted_by": "kotuek",
+    "balance": 16,
+    "date": "2026-04-19T11:54:15.295+00:00"
+  },
+  {
+    "id": 21,
+    "created_at": "2026-04-19T23:10:34.386434+00:00",
+    "user_id": "yamawama",
+    "amount": 1,
+    "reason": "TDRにおいて安全なRB運搬",
+    "granted_by": "kotuek",
+    "balance": 1,
+    "date": "2026-04-19T23:10:34.201+00:00"
+  }
+]
